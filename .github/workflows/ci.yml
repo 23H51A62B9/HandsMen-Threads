@@ -1,0 +1,32 @@
+name: SFDX Project Verification
+
+on:
+  push:
+    branches: [ main, docs/portfolio-polish ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate sfdx-project.json
+        run: jq empty sfdx-project.json
+
+      - name: Verify Apex and Trigger metadata pairs
+        run: |
+          for file in force-app/main/default/classes/*.cls force-app/main/default/triggers/*.trigger; do
+            if [ ! -f "${file}-meta.xml" ]; then
+              echo "Missing metadata file for ${file}"
+              exit 1
+            fi
+          done
+
+      - name: Validate metadata XML syntax
+        run: |
+          for xml in force-app/main/default/classes/*-meta.xml force-app/main/default/triggers/*-meta.xml; do
+            xmllint --noout "$xml"
+          done
